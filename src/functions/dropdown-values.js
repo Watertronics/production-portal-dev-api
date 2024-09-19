@@ -84,7 +84,14 @@ app.http('dropdown-values', {
                     context.log('Request Body:', body);
 
                     // Destructure the necessary fields from the body
-                    const { id, dropdownType, value, displayText, sortOrder, isActive } = body;
+                    const {
+                        ID: id, // Destructuring and renaming to lowercase 'id'
+                        DropdownType: dropdownType,
+                        Value: value,
+                        DisplayText: displayText,
+                        SortOrder: sortOrder,
+                        IsActive: isActive
+                    } = body;
 
                     // Ensure all required fields are provided
                     if (!id || !dropdownType || !value || !displayText || sortOrder === undefined || isActive === undefined) {
@@ -97,7 +104,12 @@ app.http('dropdown-values', {
                     // Update the dropdown value in the database
                     const result = await sql.query`
                         UPDATE dbo.DropdownValues
-                        SET DropdownType = ${dropdownType}, Value = ${value}, DisplayText = ${displayText}, SortOrder = ${sortOrder}, IsActive = ${isActive}
+                        SET 
+                            DropdownType = ${dropdownType}, 
+                            Value = ${value}, 
+                            DisplayText = ${displayText}, 
+                            SortOrder = ${sortOrder}, 
+                            IsActive = ${isActive}
                         WHERE ID = ${id}`;
 
                     return {
