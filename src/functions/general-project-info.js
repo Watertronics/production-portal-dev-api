@@ -1,4 +1,6 @@
 const { app } = require('@azure/functions');
+const http = require('http');
+const url = require('url');
 const sql = require('mssql');
 
 app.http('general-project-info', {
@@ -35,8 +37,17 @@ app.http('general-project-info', {
             let result;
 
             if (method === 'GET') {
-                // Handle GET request: Retrieve all general info data - can filter out hidden jobs from here
-                result = await sql.query`SELECT * FROM dbo.GeneralProjectInfo`;
+                const parsedUrl = url.parse(request.url, true);
+                const query = parsedUrl.query;
+                const id = query.id;
+                if (id) {
+                    // Handle GET request: Retrieve specific project info by id
+                    result = await sql.query`SELECT * FROM dbo.GeneralProjectInfo WHERE ID = ${id}`;
+                } else {
+                    // Retrieve all general info data if no id is provided
+                    result = await sql.query`SELECT * FROM dbo.GeneralProjectInfo`;
+                }
+
                 return {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(result.recordset, null, 2)
