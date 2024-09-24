@@ -4,7 +4,7 @@ const url = require('url');
 const sql = require('mssql');
 
 app.http('general-project-info', {
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     authLevel: 'anonymous',
     handler: async (request, context) => {
 
@@ -249,6 +249,47 @@ app.http('general-project-info', {
                         status: 500,
                         body: `Error executing DELETE query: ${err.message}`
                     };
+                }
+            } else if (method === 'PATCH') {
+                // Handle PATCH request: Partially update an existing project
+                try {
+                    const body = await request.json();
+                    const { ID: id, ...updateFields } = body; // Extract ID and other fields
+
+                    if (!id) {
+                        return { status: 400, body: 'Missing required field: ID' };
+                    }
+
+                    context.log('Updating project with ID:', id);
+                    context.log('Fields to update:', updateFields);
+
+                    // Create the SQL query dynamically
+                    const setClauses = [];
+                    const values = [];
+
+                    for (const [key, value] of Object.entries(updateFields)) {
+                        setClauses.push(`${key} = @${key}`); // Use parameterized queries
+                        values.push({ name: key, type: sql.VarChar, value }); // Adjust type as necessary
+                    }
+
+                    const query = `UPDATE dbo.GeneralProjectInfo SET ${setClauses.join(', ')} WHERE ID = @ID`;
+                    values.push({ name: 'ID', type: sql.Int, value: id }); // Add ID to values
+
+                    // Connect to the database
+                    await sql.connect(sqlConfig);
+
+                    // Create a new SQL request
+                    const sqlRequest = new sql.Request();
+                    values.forEach(param => sqlRequest.input(param.name, param.type, param.value));
+                    await sqlRequest.query(query); // Execute the query
+
+                    return { status: 200, body: 'Project info updated successfully' };
+                } catch (err) {
+                    context.log('SQL error during UPDATE:', err);
+                    return { status: 500, body: `Error updating project info: ${err.message}` };
+                } finally {
+                    // Close the SQL connection
+                    await sql.close();
                 }
             }
         } catch (err) {
